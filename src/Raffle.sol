@@ -29,10 +29,8 @@ pragma solidity 0.8.19;
  * @notice This contract is for smaple raffle
  * @dev Implements ChainLink VRFv2.5
  */
-import {VRFConsumerBaseV2Plus} from
-    "../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
-import {VRFV2PlusClient} from
-    "../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+import {VRFConsumerBaseV2Plus} from "../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import {VRFV2PlusClient} from "../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
 contract Raffle is VRFConsumerBaseV2Plus {
     /**
@@ -41,12 +39,16 @@ contract Raffle is VRFConsumerBaseV2Plus {
     error Raffle__SendMoreToEnterRaffle(); //hatayı daha iyi okuyalım diye
     error Raffle__TransferFailed();
     error Raffle_RaffleNOTOpen();
+    error Raffle__UpkeepNotNeeded(
+        uint256 balance,
+        uint256 playersLength,
+        uint256 raffleState
+    );
 
     /* Type declarations */
     enum RaffleState {
         OPEN, // 0
         CALCULATING // 1
-
     }
 
     /*DURUM DEĞİŞKENLERİ */
@@ -69,6 +71,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     // 1. yeniden deploy eildiğinde daha kolay şekilde ulaşma
     // 2. front end kısmında daha iyi indeksleme
     event RaffleEntered(address indexed player);
+    event WinnerPicked(address indexed winner);
 
     constructor(
         uint256 entranceFee,
@@ -106,40 +109,74 @@ contract Raffle is VRFConsumerBaseV2Plus {
         emit RaffleEntered(msg.sender);
     }
 
+    /**
+     * @dev chanlink otomatik bağlatısı fonskyionu çekilişi kazananı ögrenmek için zamanın gelip gelmediğini anlayacağız
+     * upkeepNeeded kesin true olmalı
+     * 1. zaman aralığını geççmiş olmalı
+     * 2. çekiliş açık olmalı
+     * 3. kontratta eth olmalı
+     * 4. kullanıcıda LINK olmalı
+     */
+    function checkUpkeep(
+        bytes memory /*checkData*/
+    ) public view returns (bool upkeepNeeded, bytes memory /* performData */) {
+        bool timeHasPassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
+        bool isOpen = s_raffleState == RaffleState.OPEN;
+        bool hasBalance = address(this).balance > 0;
+        bool hasPlayers = s_players.length > 0;
+        upkeepNeeded = timeHasPassed && isOpen && hasBalance && hasPlayers;
+        return (upkeepNeeded, "");
+    }
+
     //kazananı seçecek
     // 1. Random sayı
     // 2. oyuncuların sayılarından random seçilmeli
     // 3. otomatik olarak başlayacak
 
-    function pickWinner() external {
+    function performUpkeep(bytes calldata /*performData  */) external {
         // geçen saniyeleri ayarlamak için
         // s_lastTimeStamp => her piyango çekildiğinde bu değişecek o yüzden hafızada tutulmalı
-        if ((block.timestamp - s_lastTimeStamp) > i_interval) {
-            revert();
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        if (!upkeepNeeded) {
+            revert Raffle__UpkeepNotNeeded(
+                address(this).balance,
+                s_players.length,
+                uint256(s_raffleState)
+            );
         }
         // random sayı al
         s_raffleState = RaffleState.CALCULATING; // kazanan seçerken katılma durdurulacak
-        VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
-            keyHash: i_keyHash, // ödeme max gas fiyat
-            subId: i_subscriptionId, // sözleşmeyi başlatan abone idsi
-            requestConfirmations: REQUEST_CONFIRMATIONS, // istek göndermede bloklar için bekleyecek
-            callbackGasLimit: i_gasLimit, //GÖNÜLLÜ OLDUĞUMUZ GASI ÖDEME LİMİTİ
-            numWords: NUM_WORDS,
-            // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
-            extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
-        });
-        uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
+        VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient
+            .RandomWordsRequest({
+                keyHash: i_keyHash, // ödeme max gas fiyat
+                subId: i_subscriptionId, // sözleşmeyi başlatan abone idsi
+                requestConfirmations: REQUEST_CONFIRMATIONS, // istek göndermede bloklar için bekleyecek
+                callbackGasLimit: i_gasLimit, //GÖNÜLLÜ OLDUĞUMUZ GASI ÖDEME LİMİTİ
+                numWords: NUM_WORDS,
+                // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+                )
+            });
+        s_vrfCoordinator.requestRandomWords(request);
     }
 
-    function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
+    function fulfillRandomWords(
+        uint256 /*requestId*/,
+        uint256[] calldata randomWords
+    ) internal override {
         uint256 indexOfWiner = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWiner];
         s_recentWinner = recentWinner;
+        /* kazanan belirlendi ve şimdi yeniden müşterilr çekilişe katılmaları lazım */
         s_raffleState = RaffleState.OPEN; // kazanan belirlendikten sonra açılacak
-        (bool success,) = recentWinner.call{value: address(this).balance}("");
+        s_players = new address payable[](0); // bu dizi elemanlarını sıfırladık şimdi yeni gelenler katılacak
+        s_lastTimeStamp = block.timestamp;
+        (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle__TransferFailed();
         }
+        emit WinnerPicked(s_recentWinner);
     }
 
     /**
