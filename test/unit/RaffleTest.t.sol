@@ -62,7 +62,8 @@ contract RaffleTest is Test {
      * expectEmit() -> bool kısımları doğru olursa istenilen contractı yayınlar
      * bu fonks. da sadece RaffleEntered kısmını test ettiğimiz için true başka test
      * edecek şey olamadığı için false
-     * ayrıca eventleri test dosyasına alman gerek     */
+     * ayrıca eventleri test dosyasına alman gerek
+     */
     function testEnteringRaffleEmitsEvent() public {
         vm.prank(PLAYER);
         vm.expectEmit(true, false, false, false, address(raffle));
