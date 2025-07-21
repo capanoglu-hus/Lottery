@@ -76,7 +76,7 @@ contract RaffleTest is Test {
      * vm.rool() -> block numarasını ayarlar
      */
 
-    /*function testDontAllowPlayersToEnterWhileRaffleIsCalculating() public {
+    function testDontAllowPlayersToEnterWhileRaffleIsCalculating() public {
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
         vm.warp(block.timestamp + interval + 1);
@@ -86,5 +86,26 @@ contract RaffleTest is Test {
         vm.expectRevert(Raffle.Raffle_RaffleNOTOpen.selector);
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
-    }*/
+    }
+
+    /** CHECK UPKEEP */
+
+    function testCheckUpkeepReturnsFalseIfItHasNoBalance() public {
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        assert(!upkeepNeeded);
+    }
+
+    function testCheckUpkeepReturnsFalseIfRaffleIsntOpen() public {
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        raffle.performUpkeep("");
+
+        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+
+        assert(!upkeepNeeded);
+    }
 }
