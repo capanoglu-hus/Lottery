@@ -12,6 +12,10 @@ abstract contract CodeConstants {
     uint96 public MOCK_GAS_PRICE_LINK = 1e9;
     // LINK/ETH price
     int256 public MOCK_WEI_PER_UINT_LINK = 4e15;
+
+    address public constant FOUNDRY_DEFAULT_SENDER =
+        0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
+
     uint256 public constant ETH_SEPOLIA_CHAIN_ID = 11155111;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 }
@@ -27,6 +31,7 @@ contract HelperConfig is CodeConstants, Script {
         uint32 callbackGasLimit;
         uint256 subscriptionId;
         address link;
+        address account;
     }
 
     NetworkConfig public localNetworkConfig;
@@ -77,7 +82,8 @@ contract HelperConfig is CodeConstants, Script {
                 gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
                 callbackGasLimit: 500000,
                 subscriptionId: 30424258074089108502750064377682593492120394433435313718580861139604055916405,
-                link: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+                link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
+                account: 0x1993c91dc5F9389c8741075acAD42Be755266cC8
             });
     }
 
@@ -103,7 +109,8 @@ contract HelperConfig is CodeConstants, Script {
             gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             callbackGasLimit: 500000,
             subscriptionId: 0,
-            link: address(linkToken)
+            link: address(linkToken),
+            account: FOUNDRY_DEFAULT_SENDER
         });
         return localNetworkConfig;
     }
