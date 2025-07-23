@@ -1,9 +1,17 @@
 # Blockchain-based lottery contract
 
 ➤ Players deposit money into the contract.
+
+
 ➤ After a certain period of time, the contract closes.
+
+
      - The contract closes based on the time calculation using Chainlink automation.
+
+     
 ➤ A random player is selected from among the participating players.
+
+
      - A random number is obtained using Chainlink VRF2.5.
 
 
@@ -15,11 +23,15 @@
 
 <img width="1396" height="478" alt="sepoliatestaccess" src="https://github.com/user-attachments/assets/a9acf00f-63b8-4672-baa5-97d2d5f55c95" />
 
+<img width="837" height="583" alt="vrfsepolıa" src="https://github.com/user-attachments/assets/ab5fd23e-c2fa-4c43-a010-76f119766684" />
+
 ## The test resulted in the creation of a VRF2.5 subscription.
 <img width="1393" height="692" alt="sepoliavrf2 5" src="https://github.com/user-attachments/assets/fb872c35-ec8c-4fd4-b3d6-261e239780b1" />
      
 
-<img width="837" height="583" alt="vrfsepolıa" src="https://github.com/user-attachments/assets/ab5fd23e-c2fa-4c43-a010-76f119766684" />
+
+
+<img width="980" height="216" alt="vrf-subscription" src="https://github.com/user-attachments/assets/9e5cfb54-4420-475c-9a11-439924654fe4" />
 
 
 ## Launching Chainlink automation
@@ -42,5 +54,5 @@
 
 
 
-<img width="980" height="216" alt="vrf-subscription" src="https://github.com/user-attachments/assets/9e5cfb54-4420-475c-9a11-439924654fe4" />
+
 
